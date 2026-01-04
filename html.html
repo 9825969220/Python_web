@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Media Downloader</title>
+<!-- Import a nice font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #6366f1;
+        --secondary: #22c55e;
+        --bg: #0f172a;
+        --card: #1e293b;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background: radial-gradient(circle at top, #1e293b, #0f172a);
+        font-family: 'Inter', sans-serif;
+        color: var(--text);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .card {
+        background: rgba(30, 41, 59, 0.95);
+        padding: 40px;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.1);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+
+    h2 {
+        margin-bottom: 25px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        background: -webkit-linear-gradient(45deg, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .input-group {
+        text-align: left;
+        margin-bottom: 15px;
+    }
+
+    label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-left: 5px;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 14px;
+        background: #334155;
+        color: white;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        font-size: 1rem;
+        outline: none;
+        transition: 0.2s;
+    }
+
+    input:focus, select:focus {
+        border-color: var(--primary);
+        background: #0f172a;
+    }
+
+    .btn-container {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    button {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: transform 0.2s, opacity 0.2s;
+        color: white;
+    }
+
+    button:active { transform: scale(0.96); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-v { 
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); 
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-a { 
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+        margin-top: 25px;
+        background: #334155;
+        border-radius: 50px;
+        height: 8px;
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .bar {
+        height: 100%;
+        width: 0%;
+        background: var(--primary);
+        border-radius: 50px;
+        transition: width 0.4s ease;
+        box-shadow: 0 0 10px var(--primary);
+    }
+
+    #status {
+        margin-top: 15px;
+        font-size: 0.9rem;
+        min-height: 20px;
+        font-weight: 500;
+    }
+
+    .success { color: var(--secondary); }
+    .error { color: #ef4444; }
+
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Media Downloader</h2>
+
+    <div class="input-group">
+        <label for="url">Video Link</label>
+        <input type="text" id="url" placeholder="https://youtube.com/...">
+    </div>
+
+    <div class="input-group">
+        <label for="quality">Quality</label>
+        <select id="quality">
+            <option value="1080">Full HD (1080p)</option>
+            <option value="720" selected>HD (720p)</option>
+            <option value="360">Data Saver (360p)</option>
+        </select>
+    </div>
+
+    <div class="btn-container">
+        <!-- SVG Icons included directly -->
+        <button class="btn-v" id="btn-video" onclick="process('video')">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            Video
+        </button>
+        <button class="btn-a" id="btn-audio" onclick="process('audio')">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            Audio
+        </button>
+    </div>
+
+    <div class="progress-container">
+        <div class="bar" id="bar"></div>
+    </div>
+    <p id="status">Ready to download</p>
+</div>
+
+<script>
+async function process(mode) {
+    const urlInput = document.getElementById('url');
+    const url = urlInput.value.trim();
+    const quality = document.getElementById('quality').value;
+    const status = document.getElementById('status');
+    const bar = document.getElementById('bar');
+    const btnV = document.getElementById('btn-video');
+    const btnA = document.getElementById('btn-audio');
+
+    if (!url) {
+        status.innerText = "⚠️ Please paste a valid URL";
+        return;
+    }
+
+    status.innerText = "⏳ Processing...";
+    bar.style.width = "10%";
+    btnV.disabled = true;
+    btnA.disabled = true;
+
+    try {
+        const response = await fetch("http://localhost:5000/download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, mode, quality })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "Server Error");
+        }
+
+        // --- NEW FILENAME LOGIC ---
+        let filename = mode === "audio" ? "audio.mp3" : "video.mp4"; // Default
+        
+        // 1. Get the custom header we sent from Python
+        const headerName = response.headers.get('X-Filename');
+        
+        // 2. Decode it (e.g. "Happy%20New%20Year.mp3" -> "Happy New Year.mp3")
+        if (headerName) {
+            filename = decodeURIComponent(headerName);
+        }
+        // ---------------------------
+
+        const blob = await response.blob();
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        
+        // Use the correct filename
+        link.download = filename; 
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        bar.style.width = "100%";
+        status.innerText = "✅ Download Complete!";
+        status.className = "success";
+
+    } catch (err) {
+        console.error(err);
+        bar.style.width = "0%";
+        status.innerText = "❌ Error: " + err.message;
+        status.className = "error";
+    } finally {
+        btnV.disabled = false;
+        btnA.disabled = false;
+    }
+}
+
+// Optional: Progress polling if your backend supports it
+// If your backend does not have /progress, this might clutter console with 404s
+// Uncomment only if backend is ready.
+/*
+setInterval(async () => {
+    try {
+        const res = await fetch("http://localhost:5000/progress");
+        if(res.ok){
+            const data = await res.json();
+            if (data.progress) {
+                // Ensure we don't override 100% or error states
+                const currentWidth = parseFloat(document.getElementById('bar').style.width) || 0;
+                if(currentWidth < 100) {
+                    document.getElementById('bar').style.width = data.progress;
+                }
+            }
+        }
+    } catch(e) { }
+}, 1000);
+*/
+</script>
+
+</body>
+</html>
